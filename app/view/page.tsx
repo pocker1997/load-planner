@@ -9,7 +9,13 @@ import { Suspense } from 'react';
 // ── Decode ────────────────────────────────────────────────────────────────────
 function decodePayload(d: string): { weekKey: string; data: WeekData } | null {
   try {
-    return JSON.parse(decodeURIComponent(escape(atob(d))));
+    // Restore URL-safe base64 → standard base64
+    const b64 = d.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    return JSON.parse(json);
   } catch {
     return null;
   }

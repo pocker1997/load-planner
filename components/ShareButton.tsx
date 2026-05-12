@@ -19,8 +19,11 @@ function IconShare() {
 }
 
 export function encodeWeekData(weekKey: string, data: WeekData): string {
-  const payload = { weekKey, data };
-  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const json = JSON.stringify({ weekKey, data });
+  const bytes = new TextEncoder().encode(json);
+  const b64 = btoa(String.fromCharCode(...bytes));
+  // Make URL-safe: replace +→-, /→_, strip =
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 export default function ShareButton({ weekKey }: Props) {
