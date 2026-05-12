@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MEETINGS_COLOR, Specialist, TaskStatus, TASK_COLORS, TOTAL_HOURS } from '@/types';
-import { useStore } from '@/lib/store';
+import { useStoreContext } from '@/lib/storeContext';
 
 function snap(h: number) {
   return Math.max(0.5, Math.round(h * 2) / 2);
@@ -60,7 +60,7 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
 
 export default function SpecChart({ specialist, weekKey, compact }: Props) {
   const { getSpecData, addTask, deleteTask, updateTask, setTaskStatus, postponeTask, setMeetingHours } =
-    useStore();
+    useStoreContext();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [drag, setDrag] = useState<DragState | null>(null);

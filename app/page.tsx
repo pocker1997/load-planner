@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import { currentWeekKey } from '@/lib/week';
-import { useStore } from '@/lib/store';
+import { StoreProvider, useStoreContext } from '@/lib/storeContext';
 import { SPECIALISTS } from '@/types';
 import SpecTabs, { ViewMode } from '@/components/SpecTabs';
 import WeekSwitcher from '@/components/WeekSwitcher';
 import SpecChart from '@/components/SpecChart';
+import CalendarSync from '@/components/CalendarSync';
 
-export default function Home() {
+function AppContent() {
   const [weekKey, setWeekKey] = useState(currentWeekKey);
   const [view, setView] = useState<ViewMode>('Ростік');
-  const { hydrated } = useStore();
+  const { hydrated } = useStoreContext();
 
   if (!hydrated) {
     return (
@@ -26,7 +27,10 @@ export default function Home() {
       {/* Top bar */}
       <header className="flex-shrink-0 flex items-center justify-between px-6 pt-5 pb-4">
         <SpecTabs value={view} onChange={setView} />
-        <WeekSwitcher weekKey={weekKey} onChange={setWeekKey} />
+        <div className="flex items-center gap-3">
+          <CalendarSync weekKey={weekKey} />
+          <WeekSwitcher weekKey={weekKey} onChange={setWeekKey} />
+        </div>
       </header>
 
       {/* Chart area */}
@@ -51,5 +55,13 @@ export default function Home() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <StoreProvider>
+      <AppContent />
+    </StoreProvider>
   );
 }
