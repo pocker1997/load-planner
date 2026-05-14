@@ -249,7 +249,7 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
               style={{
                 backgroundColor: block.color,
                 flex: Math.max(block.hours, 0.01),
-                minHeight: isEditName ? 110 : 72,
+                minHeight: 110,
                 opacity: isDone ? 0.5 : isPostponed ? 0.65 : 1,
                 transition: isThisDrag || drag ? 'none' : 'flex 0.18s ease, opacity 0.2s ease, min-height 0.15s ease',
               }}
