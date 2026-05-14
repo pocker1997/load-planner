@@ -39,6 +39,11 @@ export const TASK_COLORS = [
 
 export const MEETINGS_COLOR = '#EF6B6B';
 
+export interface BacklogTask {
+  id: string;
+  name: string;
+}
+
 export function defaultSpecialistData(): SpecialistData {
   return { tasks: [], meetingHours: 0 };
 }

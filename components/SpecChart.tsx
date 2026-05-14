@@ -43,6 +43,13 @@ function IconTrash() {
     </svg>
   );
 }
+function IconBacklog() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M9 6H3M3 6l2.5-2.5M3 6l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function IconPlus() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
@@ -59,15 +66,17 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
 };
 
 export default function SpecChart({ specialist, weekKey, compact }: Props) {
-  const { getSpecData, addTask, deleteTask, updateTask, setTaskStatus, postponeTask, setMeetingHours } =
+  const { getSpecData, addTask, deleteTask, updateTask, setTaskStatus, postponeTask, setMeetingHours, assignBacklogTask, unassignTask } =
     useStoreContext();
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragCounterRef = useRef(0);
 
   const [drag, setDrag] = useState<DragState | null>(null);
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editNameVal, setEditNameVal] = useState('');
   const [editingHours, setEditingHours] = useState<string | null>(null);
   const [editHoursVal, setEditHoursVal] = useState('');
+  const [isDropOver, setIsDropOver] = useState(false);
 
   const data = getSpecData(weekKey, specialist);
   const { tasks, meetingHours } = data;
@@ -82,7 +91,7 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
   const remaining = TOTAL_HOURS - totalAllocated;
   const isOverloaded = totalAllocated > TOTAL_HOURS;
 
-  // ── Drag ─────────────────────────────────────────────────────────────────
+  // ── Resize drag ───────────────────────────────────────────────────────────
   const onDragStart = (e: React.MouseEvent, id: string, hours: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -113,6 +122,28 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
       window.removeEventListener('mouseup', onUp);
     };
   }, [drag, tasks, weekKey, specialist, setMeetingHours, updateTask]);
+
+  // ── Backlog drop ──────────────────────────────────────────────────────────
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current++;
+    setIsDropOver(true);
+  };
+  const handleDragLeave = () => {
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setIsDropOver(false);
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDropOver(false);
+    const backlogTaskId = e.dataTransfer.getData('text/plain');
+    if (backlogTaskId) assignBacklogTask(backlogTaskId, weekKey, specialist, 2);
+  };
 
   // ── Editing ───────────────────────────────────────────────────────────────
   const startEditName = (id: string, name: string) => {
@@ -192,12 +223,21 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
         </span>
       </div>
 
-      {/* Blocks */}
-      <div ref={containerRef} className="flex flex-col flex-1 min-h-0 gap-2">
+      {/* Drop zone wrapper */}
+      <div
+        ref={containerRef}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="flex flex-col flex-1 min-h-0 gap-2 rounded-2xl transition-all duration-150"
+        style={isDropOver ? { outline: '2px dashed #7C6CF2', outlineOffset: 4 } : undefined}
+      >
         {blocks.map((block) => {
           const isThisDrag = drag?.id === block.id;
           const isEditName = editingName === block.id;
           const isEditHours = editingHours === block.id;
+          const isEditing = isEditName || isEditHours;
           const isDone = block.status === 'done';
           const isPostponed = block.status === 'postponed';
           const isInactive = isDone || isPostponed;
@@ -209,21 +249,18 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
               style={{
                 backgroundColor: block.color,
                 flex: Math.max(block.hours, 0.01),
-                minHeight: 72,
+                minHeight: isEditName ? 110 : 72,
                 opacity: isDone ? 0.5 : isPostponed ? 0.65 : 1,
-                transition: isThisDrag || drag ? 'none' : 'flex 0.18s ease, opacity 0.2s ease',
+                transition: isThisDrag || drag ? 'none' : 'flex 0.18s ease, opacity 0.2s ease, min-height 0.15s ease',
               }}
             >
               {/* ── Name row ─────────────────────────────── */}
               <div className="absolute top-0 left-0 right-0 flex items-start px-5 pt-4 pr-28 gap-2">
-                {/* Status badge */}
                 {isInactive && (
                   <span className="flex-shrink-0 mt-px px-2 py-0.5 rounded-full bg-white/25 text-white text-[10px] font-semibold leading-none self-center">
                     {STATUS_LABEL[block.status]}
                   </span>
                 )}
-
-                {/* Name — editable */}
                 <div className="flex items-center gap-0.5 flex-1 min-w-0">
                   <span className={`${compact ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest text-white/70 uppercase flex-shrink-0`}>
                     #
@@ -282,8 +319,8 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
                 )}
               </div>
 
-              {/* ── Action pills (hover, tasks only) ─────── */}
-              {block.canAction && (
+              {/* ── Action pills (hover, tasks only, not while editing) ── */}
+              {block.canAction && !isEditing && (
                 <div className="absolute bottom-8 left-4 flex gap-1.5 opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150 pointer-events-none group-hover/bar:pointer-events-auto">
                   {/* Done */}
                   <button
@@ -300,9 +337,7 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
 
                   {/* Postpone */}
                   <button
-                    onClick={() => {
-                      if (!isPostponed) postponeTask(weekKey, specialist, block.id);
-                    }}
+                    onClick={() => { if (!isPostponed) postponeTask(weekKey, specialist, block.id); }}
                     disabled={isPostponed}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
                       isPostponed
@@ -312,6 +347,15 @@ export default function SpecChart({ specialist, weekKey, compact }: Props) {
                   >
                     <IconArrow />
                     Перенести
+                  </button>
+
+                  {/* To backlog */}
+                  <button
+                    onClick={() => unassignTask(weekKey, specialist, block.id)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-white/20 hover:bg-white/35 text-white backdrop-blur-sm transition-all"
+                  >
+                    <IconBacklog />
+                    В беклог
                   </button>
 
                   {/* Delete */}

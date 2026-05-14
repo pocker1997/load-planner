@@ -8,6 +8,7 @@ import SpecTabs, { ViewMode } from '@/components/SpecTabs';
 import WeekSwitcher from '@/components/WeekSwitcher';
 import SpecChart from '@/components/SpecChart';
 import ShareButton from '@/components/ShareButton';
+import BacklogColumn from '@/components/BacklogColumn';
 
 function AppContent() {
   const [weekKey, setWeekKey] = useState(currentWeekKey);
@@ -36,7 +37,12 @@ function AppContent() {
       {/* Chart area */}
       <main className="flex-1 min-h-0 px-6 pb-6">
         {view === 'Всі' ? (
-          <div className="h-full grid grid-cols-3 gap-4">
+          <div className="h-full grid gap-4" style={{ gridTemplateColumns: '200px 1fr 1fr 1fr' }}>
+            {/* Backlog */}
+            <div className="flex flex-col min-h-0">
+              <BacklogColumn />
+            </div>
+            {/* Specialists */}
             {SPECIALISTS.map((spec) => (
               <div key={spec} className="flex flex-col min-h-0">
                 <p className="text-xs font-semibold tracking-widest text-[#8E8E93] uppercase mb-3 flex-shrink-0">
@@ -49,8 +55,15 @@ function AppContent() {
             ))}
           </div>
         ) : (
-          <div className="h-full">
-            <SpecChart specialist={view} weekKey={weekKey} />
+          <div className="h-full grid gap-4" style={{ gridTemplateColumns: '200px 1fr' }}>
+            {/* Backlog */}
+            <div className="flex flex-col min-h-0">
+              <BacklogColumn />
+            </div>
+            {/* Specialist */}
+            <div className="flex flex-col min-h-0">
+              <SpecChart specialist={view} weekKey={weekKey} />
+            </div>
           </div>
         )}
       </main>
